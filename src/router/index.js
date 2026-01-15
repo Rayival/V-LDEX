@@ -1,5 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import Home from '@/pages/index.vue'
+import Home from '@/pages/Index.vue'
 import CameraStudio from '@/views/CameraStudio.vue'
 
 const routes = [
