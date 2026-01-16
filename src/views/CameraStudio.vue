@@ -53,6 +53,45 @@
         <FilterSlider />
         <ColorPicker v-model="frameColor" />
 
+        <div class="mt-3">
+      <label class="text-xs text-slate-300 block mb-1">
+        Filter
+      </label>
+      <select
+        v-model="filter"
+        class="w-full px-3 py-2 rounded-xl bg-slate-800 text-white text-sm"
+      >
+        <option value="normal">Normal</option>
+        <option value="bw">B&W</option>
+        <option value="warm">Warm</option>
+        <option value="cool">Cool</option>
+        <option value="vintage">Vintage</option>
+      </select>
+    </div>
+    <div class="mt-3 space-y-2">
+      <label class="text-xs text-slate-300">
+        Brightness ({{ brightness }}%)
+      </label>
+      <input
+        type="range"
+        min="50"
+        max="150"
+        v-model="brightness"
+        class="w-full"
+      />
+
+      <label class="text-xs text-slate-300">
+        Contrast ({{ contrast }}%)
+      </label>
+      <input
+        type="range"
+        min="50"
+        max="150"
+        v-model="contrast"
+        class="w-full"
+      />
+    </div>
+
         <button
           @click="startCapture"
           class="mt-4 w-full py-3 rounded-xl font-semibold text-white
@@ -83,20 +122,33 @@
         </div>
 
         <div class="grid grid-cols-2 gap-2 mt-4">
+          <!-- STRIP SELALU ADA JIKA FOTO >= 1 -->
           <button
+            v-if="canExportStrip"
             @click="exportStrip"
             class="py-2 rounded-xl text-sm font-semibold text-white bg-emerald-600"
           >
             Export Strip
           </button>
 
+          <!-- GRID MUNCUL HANYA JIKA FOTO >= 4 -->
           <button
+            v-if="canExportGrid"
             @click="exportGrid"
             class="py-2 rounded-xl text-sm font-semibold text-white bg-indigo-600"
           >
             Export Grid
           </button>
         </div>
+        <button
+          v-if="photos.length"
+          @click="clearPhotos"
+          class="mt-2 w-full py-2 rounded-xl text-sm font-semibold
+                bg-rose-600 text-white"
+        >
+          Clear Photos
+        </button>
+
       </section>
     </main>
 
@@ -116,6 +168,10 @@ import ColorPicker from '@/components/ColorPicker.vue'
 /* ================= STATE ================= */
 const previewCanvas = ref(null)
 const video = document.createElement('video')
+const filter = ref('normal')
+const brightness = ref(100)
+const contrast = ref(100)
+
 
 const photos = ref([])
 const countdown = ref(0)
@@ -126,6 +182,9 @@ const frameColor = ref('#ffffff')
 const showSafe = ref(true)
 
 const isSixMode = computed(() => mode.value === 6)
+const canExportGrid = computed(() => photos.value.length >= 4)
+const canExportStrip = computed(() => photos.value.length > 0)
+
 
 let ctx
 
@@ -178,7 +237,10 @@ const drawPreview = () => {
     ctx.scale(-1, 1)
   }
 
+  ctx.filter = filterCSS.value
   ctx.drawImage(video, sx, sy, sw, sh, 0, 0, rect.width, rect.height)
+  ctx.filter = 'none'
+
 
   if (mirror.value) ctx.restore()
 
@@ -194,6 +256,22 @@ const drawPreview = () => {
 
   requestAnimationFrame(drawPreview)
 }
+
+const filterCSS = computed(() => {
+  const base = {
+    normal: '',
+    bw: 'grayscale(100%)',
+    warm: 'sepia(35%) saturate(120%)',
+    cool: 'hue-rotate(180deg)',
+    vintage: 'sepia(40%) contrast(110%)'
+  }
+
+  return `
+    ${base[filter.value]}
+    brightness(${brightness.value}%)
+    contrast(${contrast.value}%)
+  `
+})
 
 /* ================= CAPTURE ================= */
 const startCapture = async () => {
@@ -226,7 +304,10 @@ const capture = () => {
   c.height = src.height
 
   const cctx = c.getContext('2d')
+  cctx.filter = filterCSS.value
   cctx.drawImage(src, 0, 0)
+  cctx.filter = 'none'
+
 
   // FRAME
   cctx.lineWidth = 40
@@ -244,6 +325,11 @@ const capture = () => {
 /* ================= EXPORT ================= */
 const exportStrip = () => exportCanvas('strip')
 const exportGrid = () => exportCanvas('grid')
+
+const clearPhotos = () => {
+  photos.value = []
+}
+
 
 const exportCanvas = async type => {
   const GAP = 40
