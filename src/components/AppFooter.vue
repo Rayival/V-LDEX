@@ -10,7 +10,15 @@
       </p>
 
       <p class="text-xs text-slate-500">
-        Crafted by Rayival Dede Saputra
+        Crafted by
+        <a
+          href="https://rayival.vercel.app"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="text-slate-300 hover:text-white transition-colors underline underline-offset-4"
+        >
+          Rayival Dede Saputra
+        </a>
       </p>
     </div>
   </footer>
