@@ -9,7 +9,11 @@
       <!-- ================= CAMERA PANEL ================= -->
       <section class="bg-[var(--panel)] rounded-3xl p-6 shadow-xl">
         <!-- PREVIEW -->
-        <div class="relative rounded-2xl overflow-hidden bg-black aspect-[4/3]">
+        <div
+            class="relative rounded-2xl overflow-hidden bg-black aspect-[4/3]
+                  transition-all duration-150"
+            :class="{ 'scale-[0.99] blur-[1px]': isCapturing }"
+          >
           <!-- FLASH -->
           <div
             v-if="flash"
@@ -94,9 +98,11 @@
 
         <button
           @click="startCapture"
+          :disabled="isBusy"
           class="mt-4 w-full py-3 rounded-xl font-semibold text-white
-                 bg-[var(--primary)]"
+                bg-[var(--primary)] disabled:opacity-50 disabled:cursor-not-allowed"
         >
+
           Capture
         </button>
       </section>
@@ -164,6 +170,12 @@ import ModeCard from '@/components/ModeCard.vue'
 import CountdownOverlay from '@/components/CountdownOverlay.vue'
 import FilterSlider from '@/components/FilterSlider.vue'
 import ColorPicker from '@/components/ColorPicker.vue'
+
+const isCapturing = ref(false)
+
+const isBusy = computed(() =>
+  isCapturing.value || countdown.value > 0
+)
 
 /* ================= STATE ================= */
 const previewCanvas = ref(null)
@@ -304,9 +316,24 @@ const capture = () => {
   c.height = src.height
 
   const cctx = c.getContext('2d')
-  cctx.filter = filterCSS.value
   cctx.drawImage(src, 0, 0)
-  cctx.filter = 'none'
+
+// ===== iOS SAFE FILTER (PIXEL) =====
+const imageData = cctx.getImageData(0, 0, c.width, c.height)
+const data = imageData.data
+
+const b = brightness.value - 100
+const cVal = contrast.value
+const factor = (259 * (cVal + 255)) / (255 * (259 - cVal))
+
+for (let i = 0; i < data.length; i += 4) {
+  data[i]     = factor * (data[i] - 128) + 128 + b
+  data[i + 1] = factor * (data[i + 1] - 128) + 128 + b
+  data[i + 2] = factor * (data[i + 2] - 128) + 128 + b
+}
+
+cctx.putImageData(imageData, 0, 0)
+
 
 
   // FRAME
